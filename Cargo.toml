@@ -10,8 +10,8 @@ clap = { version = "4.5", features = ["derive"] }
 # Async runtime
 tokio = { version = "1.45.1", features = ["macros", "rt-multi-thread"] }
 
-# Avail SDK (same branch you used)
-avail-rust = { package = "avail-rust-client", git = "https://github.com/availproject/avail-rust", branch = "ghali/infinity-da-rpc" }
+# Avail SDK (rm-appid-extension)
+avail-rust = { package = "avail-rust-client", git = "https://github.com/availproject/avail-rust.git", rev = "610db1c5bcad3e636e6c3192b80cec95f002c737", default-features = false, features = ["native", "reqwest", "next"] }
 
 # Substrate core bits needed for hashing / types
 sp-crypto-hashing = { version = "0.1.0", default-features = false }

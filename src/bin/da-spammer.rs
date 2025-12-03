@@ -1,7 +1,6 @@
-use avail_rust::avail_rust_core::rpc::blob::submit_blob;
-use avail_rust::prelude::*;
+use avail_rust::{avail_rust_core::rpc::blob::submit_blob, prelude::*};
 use clap::Parser;
-
+use std::error::Error;
 use da_spammer::build_blob_and_commitments;
 
 /// Simple CLI for spamming blobs + metadata to an Avail node.
@@ -25,7 +24,7 @@ struct Args {
     ch: Option<char>,
 
     /// RPC endpoint
-    #[arg(long, default_value = "http://127.0.0.1:8546")]
+    #[arg(long, default_value = "http://127.0.0.1:9944")]
     endpoint: String,
 }
 
@@ -52,7 +51,7 @@ fn keypair_for(account: &str) -> Keypair {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), ClientError> {
+async fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
     if !(1..=64).contains(&args.size_mb) {
@@ -83,7 +82,7 @@ async fn main() -> Result<(), ClientError> {
     let byte = ch as u8;
 
     let account_id = signer.account_id();
-    let mut nonce = client.nonce(&account_id).await?;
+    let mut nonce = client.chain().account_nonce(account_id.clone()).await?;
     println!("AccountId: {account_id}");
     println!("Start nonce: {nonce}");
 
@@ -108,15 +107,16 @@ async fn main() -> Result<(), ClientError> {
     println!("---- Submitting {} blobs ...", prepared.len());
     for (i, (blob, hash, commitments)) in prepared.into_iter().enumerate() {
         let app_id = (i % 5) as u32;
-        let options = Options::new().app_id(app_id).nonce(nonce);
+        let options = Options::default().app_id(app_id).nonce(nonce);
 
         let unsigned = client.tx().data_availability().submit_blob_metadata(
+            app_id,
             hash,
             blob.len() as u64,
             commitments,
         );
 
-        let tx_bytes = unsigned.sign(&signer, options).await.unwrap().0.encode();
+        let tx_bytes = unsigned.sign(&signer, options).await.unwrap().encode();
 
         println!(
             "  → [{}] nonce={} app_id={} tx_bytes={}B ...",
@@ -126,7 +126,7 @@ async fn main() -> Result<(), ClientError> {
             tx_bytes.len()
         );
 
-        match submit_blob(&client.rpc_client, tx_bytes, blob).await {
+        match submit_blob(&client.rpc_client, &tx_bytes, &blob).await {
             Ok(_) => println!("    ✓ [{}] submitted", i),
             Err(e) => eprintln!("    ✗ [{}] error: {e}", i),
         }

@@ -1,7 +1,6 @@
-use avail_rust::avail_rust_core::rpc::blob::submit_blob;
-use avail_rust::prelude::*;
+use avail_rust::{avail_rust_core::rpc::blob::submit_blob, prelude::*};
 use clap::Parser;
-
+use std::error::Error;
 use da_spammer::build_blob_and_commitments;
 
 /// Multi-account spammer:
@@ -15,7 +14,7 @@ use da_spammer::build_blob_and_commitments;
 )]
 struct Args {
     /// RPC endpoint
-    #[arg(long, default_value = "http://127.0.0.1:8546")]
+    #[arg(long, default_value = "http://127.0.0.1:9944")]
     endpoint: String,
 
     /// Funder account to pay the batchAll; one of: alice,bob,charlie,dave,eve,ferdie,one,two
@@ -59,11 +58,11 @@ fn validate_account(s: &str) -> Result<String, String> {
     }
 }
 
-/// Try to construct a Keypair from a mnemonic using the SDK helper.
-/// (If your SDK exposes a different constructor, adjust here.)
-fn keypair_from_mnemonic(mnemonic: &str) -> Keypair {
-    Keypair::from_str(mnemonic).expect("mnemonic -> Keypair")
-}
+// /// Try to construct a Keypair from a mnemonic using the SDK helper.
+// /// (If your SDK exposes a different constructor, adjust here.)
+// fn keypair_from_mnemonic(mnemonic: &str) -> Keypair {
+//     Keypair::from_str(mnemonic).expect("mnemonic -> Keypair")
+// }
 
 fn dev_keypair(name: &str) -> Keypair {
     match name {
@@ -80,7 +79,7 @@ fn dev_keypair(name: &str) -> Keypair {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), ClientError> {
+async fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
     if !(1..=64).contains(&args.size_mb) {
         panic!("--size-mb must be within 1..=64");
@@ -105,7 +104,7 @@ async fn main() -> Result<(), ClientError> {
 
     // 1) Generate N accounts (mnemonics -> Keypair)
     println!("---- Generating {} accounts ...", args.accounts);
-    let mut accts: Vec<(Keypair, String)> = Vec::with_capacity(args.accounts);
+    let accts: Vec<(Keypair, String)> = Vec::with_capacity(args.accounts);
     for _ in 0..args.accounts {
         /*         let (pair, phrase, _seed) = sp_core::sr25519::Pair::generate_with_phrase(None);
         // Prefer building from mnemonic (keeps SDK signing consistent)
@@ -120,7 +119,7 @@ async fn main() -> Result<(), ClientError> {
 
     // 2) Fund via utility.batchAll(transfers)
     let funder = dev_keypair(&args.funder);
-    let mut funder_nonce = client.nonce(&funder.account_id()).await?;
+    let mut funder_nonce = client.chain().account_nonce(funder.account_id()).await?;
     println!("---- Funding accounts with batchAll (nonce starts at {funder_nonce}) ...");
 
     // Build calls in chunks
@@ -137,7 +136,7 @@ async fn main() -> Result<(), ClientError> {
         }
         let batch = client.tx().utility().batch_all(calls);
         batch
-            .sign_and_submit(&funder, Options::new().nonce(funder_nonce))
+            .sign_and_submit(&funder, Options::default().nonce(funder_nonce))
             .await?;
         println!(
             "  → batch #{chunk_idx} with {} transfers, nonce={}",
@@ -159,7 +158,7 @@ async fn main() -> Result<(), ClientError> {
     println!("---- Fetching starting nonces for each account ...");
     let mut nonces: Vec<u32> = Vec::with_capacity(accts.len());
     for (kp, _) in accts.iter() {
-        let n = client.nonce(&kp.account_id()).await?;
+        let n = client.chain().account_nonce(kp.account_id()).await?;
         nonces.push(n);
     }
     println!("✓ Nonces fetched");
@@ -187,15 +186,16 @@ async fn main() -> Result<(), ClientError> {
 
         // app_id rotation as before
         let app_id = (i % 5) as u32;
-        let options = Options::new().app_id(app_id).nonce(nonce);
+        let options = Options::default().nonce(nonce);
 
         let unsigned = client.tx().data_availability().submit_blob_metadata(
+            app_id,
             hash,
             blob.len() as u64,
             commitments,
         );
 
-        let tx_bytes = unsigned.sign(signer, options).await.unwrap().0.encode();
+        let tx_bytes = unsigned.sign(signer, options).await.unwrap().encode();
 
         println!(
             "  → [{}] acct#{} ({}) nonce={} app_id={} tx_bytes={}B ...",
@@ -207,7 +207,7 @@ async fn main() -> Result<(), ClientError> {
             tx_bytes.len()
         );
 
-        match submit_blob(&client.rpc_client, tx_bytes, blob).await {
+        match submit_blob(&client.rpc_client, &tx_bytes, &blob).await {
             Ok(_) => {
                 println!("    ✓ [{}] submitted", i);
                 nonces[idx] += 1;
