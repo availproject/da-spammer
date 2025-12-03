@@ -1,7 +1,7 @@
 use avail_rust::{avail_rust_core::rpc::blob::submit_blob, prelude::*};
 use clap::Parser;
-use std::error::Error;
 use da_spammer::build_blob_and_commitments;
+use std::error::Error;
 
 /// Multi-account spammer:
 /// 1) Generates N keypairs

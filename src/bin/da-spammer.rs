@@ -1,7 +1,7 @@
 use avail_rust::{avail_rust_core::rpc::blob::submit_blob, prelude::*};
 use clap::Parser;
-use std::error::Error;
 use da_spammer::build_blob_and_commitments;
+use std::error::Error;
 
 /// Simple CLI for spamming blobs + metadata to an Avail node.
 #[derive(Parser, Debug)]

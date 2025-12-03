@@ -32,7 +32,7 @@ Shared
 ## ⚡ Requirements
 
 - Rust (>= 1.70 recommended)
-- A running Avail node exposing HTTP RPC at the endpoint you plan to use  
+- A running Avail node exposing HTTP RPC at the endpoint you plan to use
   (for local testing: `http://127.0.0.1:8546`)
 
 ---
@@ -57,7 +57,7 @@ Artifacts:
 - `--size-mb <1..64>`  (default: `32`)
 - `--count <1..100>`   (default: `50`)
 - `--ch <char>`        (optional; default is first letter of `--account`)
-- `--endpoint <URL>`   (default: `http://127.0.0.1:8546`)
+- `--endpoint <URL>`   (default: `http://127.0.0.1:9944`)
 
 **Full explicit example**
 ```bash
@@ -66,7 +66,7 @@ Artifacts:
   --size-mb 16 \
   --count 10 \
   --ch Z \
-  --endpoint http://127.0.0.1:8546
+  --endpoint http://127.0.0.1:9944
 ```
 - Account: Alice
 - Blob size: 16 MiB
@@ -95,7 +95,7 @@ Artifacts:
    - Blob size per tx is `--size-mb` MiB; content char is fixed via `--ch` or derived from account index.
 
 **Flags**
-- `--endpoint <URL>`            (default: `http://127.0.0.1:8546`)
+- `--endpoint <URL>`            (default: `http://127.0.0.1:9944`)
 - `--funder <dev-account>`      (default: `alice`; one of: `alice|bob|charlie|dave|eve|ferdie|one|two`)
 - `--accounts <N>`              (default: `100`)
 - `--fund-each <AVAIL>`         (default: `10`; amount in AVAIL, multiplied internally by chain `ONE_AVAIL` constant)
@@ -108,7 +108,7 @@ Artifacts:
 **Default run**
 ```bash
 ./target/release/da-sybil-spammer \
-  --endpoint http://127.0.0.1:8546 \
+  --endpoint http://127.0.0.1:9944 \
   --funder alice
 ```
 - Generates 100 accounts

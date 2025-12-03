@@ -866,6 +866,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
+name = "auto_impl"
+version = "1.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ffdcb70bdbc4d478427380519163274ac86e52916e10f0a8889adf0f96d3fee7"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.110",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -874,7 +885,7 @@ checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 [[package]]
 name = "avail-core"
 version = "0.6.2"
-source = "git+https://github.com/availproject/avail-core.git?branch=ghali%2Finfinity-da#4a9aebba058228df8a67fa6a7e992b78161f72b1"
+source = "git+https://github.com/availproject/avail-core.git?rev=92d64d4ea0d98a69532dccb692d779dd0ad38d68#92d64d4ea0d98a69532dccb692d779dd0ad38d68"
 dependencies = [
  "binary-merkle-tree",
  "blake2b_simd",
@@ -894,9 +905,11 @@ dependencies = [
  "serde",
  "sha2 0.10.9",
  "sha3",
+ "sp-debug-derive 14.0.0 (git+https://github.com/availproject/polkadot-sdk.git?branch=ghali%2Finfinity-da)",
  "sp-runtime",
  "sp-runtime-interface 24.0.0 (git+https://github.com/availproject/polkadot-sdk.git?branch=ghali%2Finfinity-da)",
  "sp-std 14.0.0 (git+https://github.com/availproject/polkadot-sdk.git?branch=ghali%2Finfinity-da)",
+ "sp-storage 19.0.0 (git+https://github.com/availproject/polkadot-sdk.git?branch=ghali%2Finfinity-da)",
  "sp-trie",
  "static_assertions",
  "thiserror-no-std",
@@ -904,9 +917,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "avail-fri"
+version = "0.1.0"
+source = "git+https://github.com/availproject/avail-core.git?rev=92d64d4ea0d98a69532dccb692d779dd0ad38d68#92d64d4ea0d98a69532dccb692d779dd0ad38d68"
+dependencies = [
+ "avail-core",
+ "binius-field",
+ "binius-math",
+ "binius-prover",
+ "binius-transcript",
+ "binius-verifier",
+ "log",
+]
+
+[[package]]
 name = "avail-rust-client"
-version = "0.4.0"
-source = "git+https://github.com/availproject/avail-rust.git?rev=610db1c5bcad3e636e6c3192b80cec95f002c737#610db1c5bcad3e636e6c3192b80cec95f002c737"
+version = "0.5.0"
+source = "git+https://github.com/availproject/avail-rust.git?rev=498d7272961571db86106998f24fbd3c8bde4065#498d7272961571db86106998f24fbd3c8bde4065"
 dependencies = [
  "avail-rust-core",
  "const-hex",
@@ -924,8 +951,8 @@ dependencies = [
 
 [[package]]
 name = "avail-rust-core"
-version = "0.4.0"
-source = "git+https://github.com/availproject/avail-rust.git?rev=610db1c5bcad3e636e6c3192b80cec95f002c737#610db1c5bcad3e636e6c3192b80cec95f002c737"
+version = "0.5.0"
+source = "git+https://github.com/availproject/avail-rust.git?rev=498d7272961571db86106998f24fbd3c8bde4065#498d7272961571db86106998f24fbd3c8bde4065"
 dependencies = [
  "base64",
  "const-hex",
@@ -935,6 +962,7 @@ dependencies = [
  "scale-decode",
  "scale-encode",
  "scale-info",
+ "schnorrkel",
  "serde",
  "serde_json",
  "sp-crypto-hashing 0.1.0",
@@ -1020,6 +1048,119 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b1f45e9417d87227c7a56d22e471c6206462cba514c7590c09aff4cf6d1ddcad"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "binius-core"
+version = "0.1.0"
+source = "git+https://github.com/binius-zk/binius64.git?rev=fe3e14a87dd59de1baf68505f98dc9cf7bf8595c#fe3e14a87dd59de1baf68505f98dc9cf7bf8595c"
+dependencies = [
+ "binius-utils",
+ "bytemuck",
+ "bytes",
+ "thiserror 2.0.17",
+]
+
+[[package]]
+name = "binius-field"
+version = "0.1.0"
+source = "git+https://github.com/binius-zk/binius64.git?rev=fe3e14a87dd59de1baf68505f98dc9cf7bf8595c#fe3e14a87dd59de1baf68505f98dc9cf7bf8595c"
+dependencies = [
+ "binius-utils",
+ "bytemuck",
+ "cfg-if",
+ "derive_more 0.99.20",
+ "rand 0.9.2",
+ "seq-macro",
+ "thiserror 2.0.17",
+]
+
+[[package]]
+name = "binius-math"
+version = "0.1.0"
+source = "git+https://github.com/binius-zk/binius64.git?rev=fe3e14a87dd59de1baf68505f98dc9cf7bf8595c#fe3e14a87dd59de1baf68505f98dc9cf7bf8595c"
+dependencies = [
+ "binius-field",
+ "binius-utils",
+ "bytemuck",
+ "getset",
+ "itertools 0.14.0",
+ "rand 0.9.2",
+ "thiserror 2.0.17",
+ "tracing",
+ "uninit",
+]
+
+[[package]]
+name = "binius-prover"
+version = "0.1.0"
+source = "git+https://github.com/binius-zk/binius64.git?rev=fe3e14a87dd59de1baf68505f98dc9cf7bf8595c#fe3e14a87dd59de1baf68505f98dc9cf7bf8595c"
+dependencies = [
+ "binius-core",
+ "binius-field",
+ "binius-math",
+ "binius-transcript",
+ "binius-utils",
+ "binius-verifier",
+ "bytemuck",
+ "bytes",
+ "derive_more 0.99.20",
+ "digest 0.10.7",
+ "either",
+ "getset",
+ "itertools 0.14.0",
+ "rand 0.9.2",
+ "thiserror 2.0.17",
+ "tracing",
+]
+
+[[package]]
+name = "binius-transcript"
+version = "0.1.0"
+source = "git+https://github.com/binius-zk/binius64.git?rev=fe3e14a87dd59de1baf68505f98dc9cf7bf8595c#fe3e14a87dd59de1baf68505f98dc9cf7bf8595c"
+dependencies = [
+ "auto_impl",
+ "binius-field",
+ "binius-utils",
+ "bytes",
+ "digest 0.10.7",
+ "thiserror 2.0.17",
+ "tracing",
+]
+
+[[package]]
+name = "binius-utils"
+version = "0.1.0"
+source = "git+https://github.com/binius-zk/binius64.git?rev=fe3e14a87dd59de1baf68505f98dc9cf7bf8595c#fe3e14a87dd59de1baf68505f98dc9cf7bf8595c"
+dependencies = [
+ "bytemuck",
+ "bytes",
+ "cfg-if",
+ "generic-array",
+ "itertools 0.14.0",
+ "rayon",
+ "thiserror 2.0.17",
+ "trait-set",
+]
+
+[[package]]
+name = "binius-verifier"
+version = "0.1.0"
+source = "git+https://github.com/binius-zk/binius64.git?rev=fe3e14a87dd59de1baf68505f98dc9cf7bf8595c#fe3e14a87dd59de1baf68505f98dc9cf7bf8595c"
+dependencies = [
+ "binius-core",
+ "binius-field",
+ "binius-math",
+ "binius-transcript",
+ "binius-utils",
+ "bytemuck",
+ "bytes",
+ "digest 0.10.7",
+ "getset",
+ "itertools 0.14.0",
+ "sha2 0.10.9",
+ "thiserror 2.0.17",
+ "tracing",
 ]
 
 [[package]]
@@ -1202,6 +1343,20 @@ name = "bytemuck"
 version = "1.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1fbdf580320f38b612e485521afda1ee26d10cc9884efaaa750d383e13e3c5f4"
+dependencies = [
+ "bytemuck_derive",
+]
+
+[[package]]
+name = "bytemuck_derive"
+version = "1.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9abbd1bc6865053c427f7198e6af43bfdedc55ab791faed4fbd361d789575ff"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.110",
+]
 
 [[package]]
 name = "byteorder"
@@ -1299,7 +1454,6 @@ dependencies = [
  "anstyle",
  "clap_lex",
  "strsim",
- "terminal_size",
 ]
 
 [[package]]
@@ -1365,12 +1519,6 @@ checksum = "4ca0197aee26d1ae37445ee532fefce43251d24cc7c166799f4d46817f1d3973"
 dependencies = [
  "crossbeam-utils",
 ]
-
-[[package]]
-name = "condtype"
-version = "1.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "baf0a07a401f374238ab8e2f11a104d2851bf9ce711ec69804834de8af45c7af"
 
 [[package]]
 name = "const-hex"
@@ -1638,12 +1786,13 @@ dependencies = [
 [[package]]
 name = "da-commitment"
 version = "0.1.0"
-source = "git+https://github.com/availproject/avail?branch=ghali%2Finfinity-da#0ed85181965a1fd62b3e05ae1fb3ecb1fd5ee7c8"
+source = "git+https://github.com/availproject/avail?rev=9eb674d013ae3f30a2317c7fb75f3e04574a3cef#9eb674d013ae3f30a2317c7fb75f3e04574a3cef"
 dependencies = [
  "anyhow",
- "divan",
+ "avail-fri",
  "kate",
  "log",
+ "primitive-types 0.12.2",
  "thiserror-no-std",
 ]
 
@@ -1819,31 +1968,6 @@ name = "displaydoc"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97369cbbc041bc366949bc74d34658d6cda5621039731c6310521892a3a20ae0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.110",
-]
-
-[[package]]
-name = "divan"
-version = "0.1.21"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a405457ec78b8fe08b0e32b4a3570ab5dff6dd16eb9e76a5ee0a9d9cbd898933"
-dependencies = [
- "cfg-if",
- "clap",
- "condtype",
- "divan-macros",
- "libc",
- "regex-lite",
-]
-
-[[package]]
-name = "divan-macros"
-version = "0.1.21"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9556bc800956545d6420a640173e5ba7dfa82f38d3ea5a167eb555bc69ac3323"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2532,6 +2656,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "getset"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9cf0fc11e47561d47397154977bc219f4cf809b2974facc3ccb3b89e2436f912"
+dependencies = [
+ "proc-macro-error2",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.110",
+]
+
+[[package]]
 name = "gimli"
 version = "0.27.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3110,6 +3246,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3243,7 +3388,7 @@ dependencies = [
 [[package]]
 name = "kate"
 version = "0.9.2"
-source = "git+https://github.com/availproject/avail-core.git?branch=ghali%2Finfinity-da#4a9aebba058228df8a67fa6a7e992b78161f72b1"
+source = "git+https://github.com/availproject/avail-core.git?rev=92d64d4ea0d98a69532dccb692d779dd0ad38d68#92d64d4ea0d98a69532dccb692d779dd0ad38d68"
 dependencies = [
  "avail-core",
  "derive_more 0.99.20",
@@ -3269,7 +3414,7 @@ dependencies = [
 [[package]]
 name = "kate-recovery"
 version = "0.10.0"
-source = "git+https://github.com/availproject/avail-core.git?branch=ghali%2Finfinity-da#4a9aebba058228df8a67fa6a7e992b78161f72b1"
+source = "git+https://github.com/availproject/avail-core.git?rev=92d64d4ea0d98a69532dccb692d779dd0ad38d68#92d64d4ea0d98a69532dccb692d779dd0ad38d68"
 dependencies = [
  "avail-core",
  "derive_more 0.99.20",
@@ -3648,7 +3793,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -3945,6 +4090,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
 
 [[package]]
+name = "picosimd"
+version = "0.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af35c838647fef3d6d052e27006ef88ea162336eee33063c50a63f163c18cdeb"
+
+[[package]]
 name = "pin-project"
 version = "1.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4005,24 +4156,27 @@ checksum = "7edddbd0b52d732b21ad9a5fab5c704c14cd949e5e9a1ec5929a24fded1b904c"
 
 [[package]]
 name = "polkavm-common"
-version = "0.26.0"
+version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49a5794b695626ba70d29e66e3f4f4835767452a6723f3a0bc20884b07088fe8"
+checksum = "ed1b408db93d4f49f5c651a7844682b9d7a561827b4dc6202c10356076c055c9"
+dependencies = [
+ "picosimd",
+]
 
 [[package]]
 name = "polkavm-derive"
-version = "0.26.0"
+version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "95282a203ae1f6828a04ff334145c3f6dc718bba6d3959805d273358b45eab93"
+checksum = "acb4463fb0b9dbfafdc1d1a1183df4bf7afa3350d124f29d5700c6bee54556b5"
 dependencies = [
  "polkavm-derive-impl-macro",
 ]
 
 [[package]]
 name = "polkavm-derive-impl"
-version = "0.26.0"
+version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6069dc7995cde6e612b868a02ce48b54397c6d2582bd1b97b63aabbe962cd779"
+checksum = "993ff45b972e09babe68adce7062c3c38a84b9f50f07b7caf393a023eaa6c74a"
 dependencies = [
  "polkavm-common",
  "proc-macro2",
@@ -4032,9 +4186,9 @@ dependencies = [
 
 [[package]]
 name = "polkavm-derive-impl-macro"
-version = "0.26.0"
+version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "581d34cafec741dc5ffafbb341933c205b6457f3d76257a9d99fb56687219c91"
+checksum = "0a4f5352e13c1ca5f0e4d7b4a804fbb85b0e02c45cae435d101fe71081bc8ed8"
 dependencies = [
  "polkavm-derive-impl",
  "syn 2.0.110",
@@ -4175,6 +4329,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "proc-macro-error-attr2"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "96de42df36bb9bba5542fe9f1a054b8cc87e172759a1868aa05c1f3acc89dfc5"
+dependencies = [
+ "proc-macro2",
+ "quote",
+]
+
+[[package]]
+name = "proc-macro-error2"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "11ec05c52be0a07b08061f7dd003e7d7092e0472bc731b4af7bb1ef876109802"
+dependencies = [
+ "proc-macro-error-attr2",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.110",
+]
+
+[[package]]
 name = "proc-macro-warning"
 version = "1.84.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4256,6 +4432,7 @@ version = "0.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6db2770f06117d490610c7488547d543617b21bfa07796d7a12f6f1bd53850d1"
 dependencies = [
+ "rand_chacha 0.9.0",
  "rand_core 0.9.3",
 ]
 
@@ -4293,6 +4470,9 @@ name = "rand_core"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "99d9a13982dcf210057a8a78572b2217b667c3beacbf3a0d8b454f6f82837d38"
+dependencies = [
+ "getrandom 0.3.4",
+]
 
 [[package]]
 name = "rand_xorshift"
@@ -4389,12 +4569,6 @@ dependencies = [
  "memchr",
  "regex-syntax 0.8.8",
 ]
-
-[[package]]
-name = "regex-lite"
-version = "0.1.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8d942b98df5e658f56f20d592c7f868833fe38115e65c33003d8cd224b0155da"
 
 [[package]]
 name = "regex-syntax"
@@ -4950,6 +5124,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d767eb0aabc880b29956c35734170f26ed551a859dbd361d140cdbeca61ab1e2"
 
 [[package]]
+name = "seq-macro"
+version = "0.3.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1bc711410fbe7399f390ca1c3b60ad0f53f80e95c5eb935e52268a0e2cd49acc"
+
+[[package]]
 name = "serde"
 version = "1.0.228"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5399,7 +5579,7 @@ dependencies = [
 [[package]]
 name = "sp-crypto-ec-utils"
 version = "0.10.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#f38750fc78969ef8c3f8411178b0c9413a15e98b"
+source = "git+https://github.com/paritytech/polkadot-sdk#6de451a105ca0a5feb675a215d4e8de5207febf6"
 dependencies = [
  "ark-bls12-377 0.5.0",
  "ark-bls12-377-ext",
@@ -5466,7 +5646,7 @@ dependencies = [
 [[package]]
 name = "sp-debug-derive"
 version = "14.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#f38750fc78969ef8c3f8411178b0c9413a15e98b"
+source = "git+https://github.com/paritytech/polkadot-sdk#6de451a105ca0a5feb675a215d4e8de5207febf6"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5487,7 +5667,7 @@ dependencies = [
 [[package]]
 name = "sp-externalities"
 version = "0.25.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#f38750fc78969ef8c3f8411178b0c9413a15e98b"
+source = "git+https://github.com/paritytech/polkadot-sdk#6de451a105ca0a5feb675a215d4e8de5207febf6"
 dependencies = [
  "environmental",
  "parity-scale-codec",
@@ -5622,7 +5802,7 @@ dependencies = [
 [[package]]
 name = "sp-runtime-interface"
 version = "24.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#f38750fc78969ef8c3f8411178b0c9413a15e98b"
+source = "git+https://github.com/paritytech/polkadot-sdk#6de451a105ca0a5feb675a215d4e8de5207febf6"
 dependencies = [
  "bytes",
  "impl-trait-for-tuples",
@@ -5653,7 +5833,7 @@ dependencies = [
 [[package]]
 name = "sp-runtime-interface-proc-macro"
 version = "17.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#f38750fc78969ef8c3f8411178b0c9413a15e98b"
+source = "git+https://github.com/paritytech/polkadot-sdk#6de451a105ca0a5feb675a215d4e8de5207febf6"
 dependencies = [
  "Inflector",
  "expander",
@@ -5706,7 +5886,7 @@ source = "git+https://github.com/availproject/polkadot-sdk.git?branch=ghali%2Fin
 [[package]]
 name = "sp-std"
 version = "14.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#f38750fc78969ef8c3f8411178b0c9413a15e98b"
+source = "git+https://github.com/paritytech/polkadot-sdk#6de451a105ca0a5feb675a215d4e8de5207febf6"
 
 [[package]]
 name = "sp-storage"
@@ -5724,7 +5904,7 @@ dependencies = [
 [[package]]
 name = "sp-storage"
 version = "19.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#f38750fc78969ef8c3f8411178b0c9413a15e98b"
+source = "git+https://github.com/paritytech/polkadot-sdk#6de451a105ca0a5feb675a215d4e8de5207febf6"
 dependencies = [
  "impl-serde 0.5.0",
  "parity-scale-codec",
@@ -5748,7 +5928,7 @@ dependencies = [
 [[package]]
 name = "sp-tracing"
 version = "16.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#f38750fc78969ef8c3f8411178b0c9413a15e98b"
+source = "git+https://github.com/paritytech/polkadot-sdk#6de451a105ca0a5feb675a215d4e8de5207febf6"
 dependencies = [
  "parity-scale-codec",
  "regex",
@@ -5825,7 +6005,7 @@ dependencies = [
 [[package]]
 name = "sp-wasm-interface"
 version = "20.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk#f38750fc78969ef8c3f8411178b0c9413a15e98b"
+source = "git+https://github.com/paritytech/polkadot-sdk#6de451a105ca0a5feb675a215d4e8de5207febf6"
 dependencies = [
  "anyhow",
  "impl-trait-for-tuples",
@@ -6112,16 +6292,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06794f8f6c5c898b3275aebefa6b8a1cb24cd2c6c79397ab15774837a0bc5755"
 dependencies = [
  "winapi-util",
-]
-
-[[package]]
-name = "terminal_size"
-version = "0.4.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "60b8cb979cb11c32ce1603f8137b22262a9d131aaa5c37b5678025f22b8becd0"
-dependencies = [
- "rustix 1.1.2",
- "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -6560,6 +6730,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "trait-set"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b79e2e9c9ab44c6d7c20d5976961b47e8f49ac199154daa514b77cd1ab536625"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
 name = "trie-db"
 version = "0.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6661,6 +6842,12 @@ name = "unicode-xid"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
+
+[[package]]
+name = "uninit"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "359fdaaabedff944f100847f2e0ea88918d8012fe64baf5b54c191ad010168c9"
 
 [[package]]
 name = "universal-hash"
