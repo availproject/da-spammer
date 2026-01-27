@@ -1,7 +1,21 @@
+use avail_fri::{
+    core::{FriBiniusPCS, B128},
+    encoding::BytesEncoder,
+    eval_utils::{derive_evaluation_point, derive_seed_from_inputs, eval_claim_to_bytes},
+    FriParamsVersion,
+};
 use avail_rust::{avail_rust_core::rpc::blob::submit_blob, prelude::*};
 use clap::Parser;
-use da_spammer::build_blob_and_commitments;
+use sp_crypto_hashing::keccak_256;
 use std::error::Error;
+
+pub struct BabeRandomness;
+impl StorageValue for BabeRandomness {
+    type VALUE = [u8; 32];
+
+    const PALLET_NAME: &str = "Babe";
+    const STORAGE_NAME: &str = "Randomness";
+}
 
 /// Simple CLI for spamming blobs + metadata to an Avail node.
 #[derive(Parser, Debug)]
@@ -88,24 +102,68 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // Precompute blobs & commitments
     println!("---- Precomputing {} blobs & commitments ...", args.count);
-    let mut prepared: Vec<(Vec<u8>, H256, Vec<u8>)> = Vec::with_capacity(args.count);
+    let mut prepared: Vec<(Vec<u8>, H256, Vec<u8>, Option<[u8; 32]>, Option<[u8; 16]>)> =
+        Vec::with_capacity(args.count);
     for i in 0..args.count {
         let this_len = len_bytes - i;
-        let (blob, hash, commitments) = build_blob_and_commitments(byte, this_len);
+        let blob = vec![byte; this_len];
+        let blob_hash = H256::from(keccak_256(&blob));
+        let params_version = FriParamsVersion(0);
+        // Encode bytes → multilinear extension over B128
+        let encoder = BytesEncoder::<B128>::new();
+        let packed = encoder
+            .bytes_to_packed_mle(&blob)
+            .expect("Failed to encode blob to packed MLE");
+
+        let n_vars = packed.total_n_vars;
+
+        // Map version + n_vars → concrete FriParamsConfig
+        let cfg = params_version.to_config(n_vars);
+
+        // Build PCS + FRI context
+        let pcs = FriBiniusPCS::new(cfg);
+        let ctx = pcs
+            .initialize_fri_context::<B128>(packed.packed_mle.log_len())
+            .expect("Failed to initialize FRI context");
+
+        // Commit to the blob MLE: returns a 32-byte digest in `commitment`
+        let commit_output = pcs
+            .commit(&packed.packed_mle, &ctx)
+            .expect("Failed to commit to blob MLE");
+        let commitments = commit_output.commitment;
+        // fetch current epoch randomness from the chain & use it to derive eval point seed
+        let rpc_client = &client.rpc_client;
+        let babe_randomness = BabeRandomness::fetch(&rpc_client, None)
+            .await?
+            .expect("Babe Randomness should be available for every epoch except genesis era");
+        let eval_point_seed = derive_seed_from_inputs(&babe_randomness, &blob_hash.0);
+        let eval_point = derive_evaluation_point(eval_point_seed, n_vars);
+        let eval_claim = pcs
+            .calculate_evaluation_claim(&packed.packed_values, &eval_point)
+            .expect("Failed to calculate evaluation claim");
+        let eval_cliam_bytes = eval_claim_to_bytes(eval_claim);
         // use our prepared blob (same content) to keep prints identical to before
         println!(
             "  [{}] blob_len={}B  hash={:?}  commitments_len={}",
             i,
             blob.len(),
-            hash,
+            blob_hash,
             commitments.len()
         );
-        prepared.push((blob, hash, commitments));
+        prepared.push((
+            blob,
+            blob_hash,
+            commitments,
+            Some(eval_point_seed),
+            Some(eval_cliam_bytes),
+        ));
     }
     println!("✓ Precompute done");
 
     println!("---- Submitting {} blobs ...", prepared.len());
-    for (i, (blob, hash, commitments)) in prepared.into_iter().enumerate() {
+    for (i, (blob, hash, commitments, eval_point_seed, eval_claim)) in
+        prepared.into_iter().enumerate()
+    {
         let app_id = (i % 5) as u32;
         let options = Options::default().app_id(app_id).nonce(nonce);
 
@@ -114,6 +172,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
             hash,
             blob.len() as u64,
             commitments,
+            eval_point_seed,
+            eval_claim,
         );
 
         let tx_bytes = unsigned.sign(&signer, options).await.unwrap().encode();
