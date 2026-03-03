@@ -10,20 +10,17 @@ clap = { version = "4.5", features = ["derive"] }
 # Async runtime
 tokio = { version = "1.45.1", features = ["macros", "rt-multi-thread"] }
 
-# Avail SDK (rm-appid-extension)
-# avail-rust = { package = "avail-rust-client", git = "https://github.com/availproject/avail-rust.git", rev = "610db1c5bcad3e636e6c3192b80cec95f002c737", default-features = false, features = ["native", "reqwest", "next"] }
-avail-rust = { package = "avail-rust-client", git = "https://github.com/availproject/avail-rust.git", rev = "481641151992e8e1cc4bcc44078451f44a2a9fa8", default-features = false, features = ["native", "reqwest"] }
-avail-fri = { git = "https://github.com/availproject/avail-core.git", rev = "5e786ae65302610b2db7df1c834b40f857cfa36a", default-features = false }
+avail-fri = { git = "https://github.com/availproject/avail-core.git", rev = "df3ec48d0b86ad4e5a1607d4c4d128d7a2f641d2", default-features = false, features = ["parallel", "std"] }
+avail-rust = { package = "avail-rust-client", git = "https://github.com/availproject/avail-rust.git", rev = "50c1d2bbafad489830a88623ae498474ae4747a5", default-features = false, features = ["native", "reqwest"] }
 # Substrate core bits needed for hashing / types
 sp-crypto-hashing = { version = "0.1.0", default-features = false }
-
-# Kate/KZG + the tiny wrapper you already use to build commitments
-# da-commitment = { git = "https://github.com/availproject/avail", branch = "ghali/infinity-da", package = "da-commitment", default-features = false, features = ["std"] }
-# da-commitment = { git = "https://github.com/availproject/avail.git", rev = "b55a2d59f3b6caf32c6e8c81b6f4ca060f0bab5d", package = "da-commitment", default-features = false, features = ["std"] }
 
 # SCALE Encode for signed extrinsic bytes
 codec = { package = "parity-scale-codec", version = "3", default-features = false, features = ["std"] }
 
-# Optional: only used in logs if you want to hex something; safe to keep
 hex = "0.4"
 base64 = { version = "0.22.1" }
+rayon = "1.11.0"
+parking_lot = "0.12.5"
+num_cpus = "1.17.0"
+ctrlc = "3.5.1"
