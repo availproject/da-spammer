@@ -4,6 +4,7 @@ use avail_fri::{
     eval_utils::{derive_evaluation_point, derive_seed_from_inputs, eval_claim_to_bytes},
     FriParamsVersion,
 };
+use avail_rust::codec::Encode;
 use avail_rust::{avail_rust_core::rpc::blob::submit_blob, prelude::*};
 use clap::Parser;
 use rayon::ThreadPoolBuilder;
@@ -145,7 +146,10 @@ fn dev_keypair(name: &str) -> Keypair {
 
 fn derive_sybil_keypair(i: usize) -> Result<Keypair, String> {
     let suri = format!("//da-spammer/{i}");
-    Keypair::from_str(&suri).map_err(|e| format!("failed to derive keypair for {suri}: {e}"))
+    let secret_uri: SecretUri = suri
+        .parse()
+        .map_err(|e| format!("failed to parse secret URI {suri}: {e:?}"))?;
+    Keypair::from_uri(&secret_uri).map_err(|e| format!("failed to derive keypair for {suri}: {e}"))
 }
 
 fn precompute_blob(
@@ -374,7 +378,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     println!("In-flight         : {}", args.in_flight);
     println!("Precompute threads: {}", threads);
 
-    let client = Arc::new(Client::new(&args.endpoint).await?);
+    let client = Arc::new(Client::connect(&args.endpoint).await?);
 
     println!("Deriving {} deterministic accounts...", args.accounts);
     let mut accounts: Vec<Arc<Keypair>> = Vec::with_capacity(args.accounts);
@@ -383,11 +387,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
         accounts.push(Arc::new(kp));
     }
     println!("Derived {} accounts", accounts.len());
-    println!("Sample account #0 : {}", accounts[0].account_id());
+    println!(
+        "Sample account #0 : {}",
+        accounts[0].public_key().to_account_id()
+    );
 
     let amount_units = args.fund_each.saturating_mul(constants::ONE_AVAIL);
     let funder = dev_keypair(&args.funder);
-    let mut funder_nonce = client.chain().account_nonce(funder.account_id()).await?;
+    let funder_account_id = funder.public_key().to_account_id();
+    let mut funder_nonce: u32 = client.chain().account_nonce(funder_account_id).await?;
 
     println!(
         "Funding {} accounts using batch_all (nonce starts at {})...",
@@ -401,13 +409,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let transfer = client
                 .tx()
                 .balances()
-                .transfer_keep_alive(kp.account_id(), amount_units);
+                .transfer_keep_alive(kp.public_key().to_account_id(), amount_units)?;
             calls.push(transfer);
         }
 
         let batch = client.tx().utility().batch_all(calls);
         batch
-            .sign_and_submit(&funder, Options::default().nonce(funder_nonce))
+            .submit(&funder, Options::default().nonce(funder_nonce))
             .await?;
 
         println!(
@@ -430,7 +438,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     println!("Fetching starting nonces for all sybil accounts...");
     let mut account_nonces = Vec::with_capacity(accounts.len());
     for kp in &accounts {
-        let n = client.chain().account_nonce(kp.account_id()).await?;
+        let n: u32 = client
+            .chain()
+            .account_nonce(kp.public_key().to_account_id())
+            .await?;
         account_nonces.push(Arc::new(tokio::sync::Mutex::new(n)));
     }
     println!("Nonces loaded");
@@ -472,7 +483,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         let account_idx = i % accounts.len();
 
         let signer = Arc::clone(&accounts[account_idx]);
-        let account_id = signer.account_id();
+        let account_id = signer.public_key().to_account_id();
         let nonce_lock = Arc::clone(&account_nonces[account_idx]);
         let client_ref = Arc::clone(&client);
         let stats_ref = Arc::clone(&stats);

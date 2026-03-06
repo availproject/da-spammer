@@ -4,6 +4,7 @@ use avail_fri::{
     eval_utils::{derive_evaluation_point, derive_seed_from_inputs, eval_claim_to_bytes},
     FriParamsVersion,
 };
+use avail_rust::codec::Encode;
 use avail_rust::{avail_rust_core::rpc::blob::submit_blob, prelude::*};
 use clap::Parser;
 use rayon::ThreadPoolBuilder;
@@ -206,6 +207,7 @@ async fn submit_with_retry(
 ) -> SubmitResult {
     let started = Instant::now();
     let mut attempts: u32 = 0;
+    let signer_account_id = signer.public_key().to_account_id();
 
     loop {
         attempts += 1;
@@ -278,7 +280,11 @@ async fn submit_with_retry(
                 }
 
                 if is_nonce_error(&err_s) {
-                    match client.chain().account_nonce(signer.account_id()).await {
+                    match client
+                        .chain()
+                        .account_nonce(signer_account_id.clone())
+                        .await
+                    {
                         Ok(fresh_nonce) => nonce = fresh_nonce,
                         Err(refresh_err) => eprintln!("failed to refresh nonce: {refresh_err}"),
                     }
@@ -343,15 +349,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
         println!("TPS cap           : unlimited");
     }
 
-    let client = Arc::new(Client::new(&args.endpoint).await?);
+    let client = Arc::new(Client::connect(&args.endpoint).await?);
     let signer = Arc::new(keypair_for(&args.account));
 
     let byte = args
         .ch
         .unwrap_or_else(|| args.account.chars().next().unwrap()) as u8;
 
-    let account_id = signer.account_id();
-    let mut next_nonce = client.chain().account_nonce(account_id.clone()).await?;
+    let account_id = signer.public_key().to_account_id();
+    let mut next_nonce: u32 = client.chain().account_nonce(account_id.clone()).await?;
     println!("AccountId         : {account_id}");
     println!("Start nonce       : {next_nonce}\n");
 
