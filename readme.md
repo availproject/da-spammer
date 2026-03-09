@@ -2,149 +2,103 @@
 
 Two Rust CLIs to stress-test data availability on an [Avail](https://www.availproject.org/) node:
 
-- **`da-spammer`** - single-account spammer: prepares blobs, computes commitments, and submits `submit_blob_metadata + blob` as signed extrinsics.
-- **`da-sybil-spammer`** - multi-account spammer: generates many ephemeral accounts, batch-funds them using `utility.batchAll(balances.transfer_keep_alive(...))`, then round-robins blob submissions across them.
+- `da-spammer`: single-account spammer with bounded precompute pipeline, retry/backoff, nonce refresh, and throughput metrics.
+- `da-sybil-spammer`: multi-account spammer that deterministically derives many accounts, batch-funds them, and submits blobs round-robin with bounded concurrency.
 
-Both binaries connect to an Avail HTTP RPC endpoint and log per-tx progress.
-
----
-
-## ✨ Features
-
-Shared
-- Connects to an Avail node via RPC (default: `http://127.0.0.1:8546`)
-- Computes KZG commitments for each blob
-- Rotates `app_id` (`i % 5`) for submissions
-- Verbose logging (nonce, app_id, tx size, etc.)
-
-**`da-spammer` (single account)**
-- Uses a chosen dev account (`Alice`, `Bob`, `Charlie`, `Dave`, `Eve`, `Ferdie`, `One`, `Two`)
-- Configurable blob size (1-64 MiB), count, and repeated content character
-
-**`da-sybil-spammer` (multi account)**
-- Generates *N* fresh SR25519 accounts (not persisted by default)
-- Funds them from a dev account via `utility.batchAll + balances.transfer_keep_alive`
-- Loops a given number of times and sends blobs round-robin: at loop *i*, use account `i % N`
-- Optional delay between txs to smooth load
-
----
-
-## ⚡ Requirements
-
-- Rust (>= 1.70 recommended)
-- A running Avail node exposing HTTP RPC at the endpoint you plan to use  
-  (for local testing: `http://127.0.0.1:8546`)
-
----
-
-## 🔧 Build
+## Build
 
 ```bash
 cargo build --release
 ```
+
 Artifacts:
 - `./target/release/da-spammer`
 - `./target/release/da-sybil-spammer`
 
----
+## `da-spammer` (single account)
 
-## 🚀 Usage
+### What it does
+- Uses one dev account (`alice|bob|charlie|dave|eve|ferdie|one|two`)
+- Streams blob precompute via a bounded queue instead of materializing a full batch in memory
+- Submits with bounded in-flight concurrency
+- Retries failed submissions with exponential backoff
+- Refreshes nonce on nonce-related RPC errors
+- Prints batch-level success/failure/retry/TPS/MiB/s metrics
 
-### 1) `da-spammer` (single account)
+### Flags
+- `--account <alice|bob|charlie|dave|eve|ferdie|one|two>` required
+- `--endpoint <url>` default: `http://127.0.0.1:9944`
+- `--size-mb <1..64>` default: `32`
+- `--count <n>` default: `50`
+- `--ch <char>` optional blob fill character
+- `--precompute-workers <n>` default: half CPU cores, min 2
+- `--in-flight <n>` default: `4`
+- `--queue-cap <n>` default: `16`
+- `--max-retries <n>` default: `3`
+- `--retry-base-ms <ms>` default: `250`
+- `--tps <float>` optional dispatch rate cap
 
-**Flags**
-- `--account <alice|bob|charlie|dave|eve|ferdie|one|two>` (required)
-- `--size-mb <1..64>`  (default: `32`)
-- `--count <1..100>`   (default: `50`)
-- `--ch <char>`        (optional; default is first letter of `--account`)
-- `--endpoint <URL>`   (default: `http://127.0.0.1:8546`)
-
-**Full explicit example**
+### Example
 ```bash
 ./target/release/da-spammer \
   --account alice \
   --size-mb 16 \
-  --count 10 \
-  --ch Z \
-  --endpoint http://127.0.0.1:8546
+  --count 200 \
+  --in-flight 12 \
+  --queue-cap 64 \
+  --max-retries 5 \
+  --retry-base-ms 200 \
+  --tps 150 \
+  --endpoint http://127.0.0.1:9944
 ```
-- Account: Alice
-- Blob size: 16 MiB
-- Transactions: 10
-- Blob content: repeated `Z`
-- RPC endpoint: local node
 
-**Small / default example**
-```bash
-./target/release/da-spammer --account bob
-```
-- Account: Bob
-- Blob size: 32 MiB (default)
-- Transactions: 50 (default)
-- Blob content: repeated `b`
-- RPC endpoint: `http://127.0.0.1:8546`
+## `da-sybil-spammer` (multi account)
 
----
+### What it does
+- Derives `--accounts` deterministic sybil keypairs from `//da-spammer/<index>`
+- Funds all derived accounts from a dev funder using `utility.batch_all(balances.transfer_keep_alive(...))`
+- Runs `--loops` blob submissions in round-robin over all accounts
+- Uses bounded in-flight concurrency
+- Retries with backoff and refreshes account nonce on nonce-related errors
+- Logs per-tx outcomes and final aggregate metrics
 
-### 2) `da-sybil-spammer` (multi account)
+### Flags
+- `--endpoint <url>` default: `http://127.0.0.1:9944`
+- `--funder <alice|bob|charlie|dave|eve|ferdie|one|two>` default: `alice`
+- `--accounts <n>` default: `100`
+- `--fund-each <avail>` default: `10`
+- `--batch-size <n>` default: `100`
+- `--size-mb <1..64>` default: `32`
+- `--loops <n>` default: `1000`
+- `--in-flight <n>` default: `50`
+- `--tps <float>` optional dispatch rate cap
+- `--max-retries <n>` default: `3`
+- `--retry-base-ms <ms>` default: `250`
+- `--ch <char>` optional fixed blob fill character
+- `--funding-settle-ms <ms>` default: `1500`
+- `--precompute-workers <n>` default: half CPU cores, min 2
 
-**What it does**
-1. Generates `--accounts` ephemeral keypairs (mnemonics are printed *only in-memory*; one sample SS58 is logged).
-2. Funds each with `--fund-each` AVAIL using `utility.batchAll(balances.transfer_keep_alive(...))` from `--funder`.
-3. Performs `--loops` submissions, using account `i % --accounts` on each iteration.
-   - Blob size per tx is `--size-mb` MiB; content char is fixed via `--ch` or derived from account index.
-
-**Flags**
-- `--endpoint <URL>`            (default: `http://127.0.0.1:8546`)
-- `--funder <dev-account>`      (default: `alice`; one of: `alice|bob|charlie|dave|eve|ferdie|one|two`)
-- `--accounts <N>`              (default: `100`)
-- `--fund-each <AVAIL>`         (default: `10`; amount in AVAIL, multiplied internally by chain `ONE_AVAIL` constant)
-- `--batch-size <N>`            (default: `100`; number of transfers per `batchAll`)
-- `--size-mb <1..64>`           (default: `32`)
-- `--loops <N>`                 (default: `1000`)
-- `--sleep-ms <milliseconds>`   (default: `0`; delay between submissions)
-- `--ch <char>`                 (optional; fixed blob character)
-
-**Default run**
+### Example
 ```bash
 ./target/release/da-sybil-spammer \
-  --endpoint http://127.0.0.1:8546 \
-  --funder alice
-```
-- Generates 100 accounts
-- Funds 10 AVAIL each (using chain's `ONE_AVAIL` base units)
-- Batches transfers in groups of 100
-- Submits 1000 blobs, 32 MiB each, round-robin over accounts
-
-**Custom run**
-```bash
-./target/release/da-sybil-spammer \
-  --endpoint http://127.0.0.1:8546 \
-  --funder bob \
-  --accounts 200 \
+  --endpoint http://127.0.0.1:9944 \
+  --funder alice \
+  --accounts 500 \
   --fund-each 5 \
-  --batch-size 50 \
-  --size-mb 16 \
-  --loops 500 \
-  --sleep-ms 10 \
-  --ch X
+  --batch-size 100 \
+  --size-mb 8 \
+  --loops 20000 \
+  --in-flight 100 \
+  --tps 400 \
+  --max-retries 5 \
+  --retry-base-ms 200
 ```
-- 200 accounts, fund 5 AVAIL each, batches of 50
-- 500 blobs of 16 MiB, alternating through accounts
-- 10 ms delay between submissions
-- Blob content: repeated `X`
 
----
+## Notes
+- `--fund-each` is interpreted in whole AVAIL and multiplied by runtime `ONE_AVAIL`.
+- High `--in-flight`, `--count`, `--accounts`, and `--size-mb` values can overload RPC, mempool, or node memory; scale gradually.
+- Deterministic sybil accounts are reproducible across runs due to `//da-spammer/<index>` derivation.
 
-## 📝 Notes & Tips
+## License
 
-- **Funding units**: `--fund-each` is interpreted as whole AVAIL and multiplied by the runtime's `ONE_AVAIL` base unit constant.
-- **Batch size**: `utility.batchAll` can be large; if you hit call size/weight limits, reduce `--batch-size`.
-- **Nonces**: `da-sybil-spammer` snapshots starting nonces and increments locally on success. (No retry/backoff logic by default.)
-- **Blob length variance**: The multi-account script reduces the blob length slightly each iteration (`len_bytes - i`) to keep content unique; ensure `--loops <= blob_size_in_bytes`.
-
----
-
-## 📜 License
-
-MIT (or your preferred license)
+MIT
