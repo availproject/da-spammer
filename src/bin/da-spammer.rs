@@ -15,7 +15,7 @@ use std::{
         atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
         Arc,
     },
-    time::{Duration, Instant},
+    time::{Duration, Instant, SystemTime},
 };
 use tokio::{
     sync::{mpsc, Semaphore},
@@ -135,11 +135,16 @@ fn precompute_blob(
     index: usize,
     byte: u8,
     len_bytes: usize,
+    run_salt: u64,
+    unique_id: u64,
     babe_randomness: [u8; 32],
 ) -> Result<PreparedBlob, String> {
     let mut blob = vec![byte; len_bytes];
-    if len_bytes >= 8 {
-        blob[..8].copy_from_slice(&(index as u64).to_le_bytes());
+    if len_bytes >= 16 {
+        blob[..8].copy_from_slice(&run_salt.to_le_bytes());
+        blob[8..16].copy_from_slice(&unique_id.to_le_bytes());
+    } else if len_bytes >= 8 {
+        blob[..8].copy_from_slice(&unique_id.to_le_bytes());
     } else {
         blob[0] = blob[0].wrapping_add((index % 255) as u8);
     }
@@ -180,6 +185,14 @@ fn precompute_blob(
         seed: eval_point_seed,
         claim: eval_claim_bytes,
     })
+}
+
+fn make_run_salt() -> u64 {
+    let nanos = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .map(|d| d.as_nanos() as u64)
+        .unwrap_or(0);
+    nanos ^ ((std::process::id() as u64) << 32)
 }
 
 fn is_nonce_error(msg: &str) -> bool {
@@ -362,6 +375,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     println!("Start nonce       : {next_nonce}\n");
 
     let mut current_epoch_randomness: Option<[u8; 32]> = None;
+    let run_salt = make_run_salt();
+    let mut next_blob_unique_id: u64 = 0;
 
     while RUNNING.load(Ordering::SeqCst) {
         let epoch_randomness: [u8; 32] = BabeRandomness::fetch(&client.rpc_client, None)
@@ -388,9 +403,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
             let tx = prepared_tx.clone();
             let randomness = epoch_randomness;
+            let unique_id = next_blob_unique_id;
+            next_blob_unique_id = next_blob_unique_id.saturating_add(1);
             precompute_set.spawn(async move {
                 let out = tokio::task::spawn_blocking(move || {
-                    precompute_blob(i, byte, len_bytes, randomness)
+                    precompute_blob(i, byte, len_bytes, run_salt, unique_id, randomness)
                 })
                 .await
                 .map_err(|e| format!("precompute task join error: {e}"))?;
